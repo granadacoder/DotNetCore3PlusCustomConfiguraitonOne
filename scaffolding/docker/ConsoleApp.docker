@@ -1,0 +1,27 @@
+# See https://hub.docker.com/_/microsoft-dotnet-core-sdk/
+FROM mcr.microsoft.com/dotnet/core/sdk:3.1 AS buildImage
+WORKDIR /mybuilddir
+
+
+# Copy sln and csprojs and restore as distinct layers
+COPY ./Solutions/MyCompany.MyExamples.CustomConfigurationExample.sln ./Solutions/
+
+COPY ./BusinessLayer/*.csproj ./BusinessLayer/
+COPY ./ConsoleOne/*.csproj ./ConsoleOne/
+COPY ./ConfigurationLib/*.csproj ./ConfigurationLib/
+COPY ./Domain/*.csproj ./Domain/
+COPY ./UnitTests/*.csproj ./UnitTests/
+
+
+RUN dotnet restore ./Solutions/MyCompany.MyExamples.CustomConfigurationExample.sln
+
+COPY . .
+
+RUN dotnet publish "./Solutions/MyCompany.MyExamples.CustomConfigurationExample.sln" -c Release -o myOut
+
+# See https://hub.docker.com/_/microsoft-dotnet-core-runtime/
+FROM mcr.microsoft.com/dotnet/core/runtime:3.1 AS runtime
+WORKDIR /myrundir
+COPY --from=buildImage /mybuilddir/myOut ./
+
+ENTRYPOINT ["dotnet", "MyCompany.MyExamples.CustomConfigurationExample.ConsoleOne.dll"]
